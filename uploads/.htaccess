@@ -1,0 +1,6 @@
+# Seguridad: evita ejecución de PHP en uploads
+<FilesMatch "\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+Options -Indexes

@@ -1,0 +1,310 @@
+/* ============================================================
+   RestaurantePRO – app.js  |  Vue 2.x
+   ============================================================ */
+
+new Vue({
+    el: '#app',
+
+    data: {
+        // --- ESTADO GENERAL ---
+        // Aquí Vue guarda todas las variables (el "estado"). Cuando cambian, Vue actualiza el HTML (home.php) automáticamente.
+        loading:     false,
+        sidebarOpen: false,
+        toasts:      [],
+        toastId:     0,
+
+        // --- DATOS DEL SERVIDOR ---
+        // Arreglos donde guardaremos la información que viene de la Base de Datos (a través de PHP)
+        insumos:    [],
+        categorias: [],
+
+        // --- FILTROS Y PAGINACIÓN ---
+        // Variables conectadas a los inputs (v-model) para buscar en tiempo real
+        busqueda:        '',
+        filtroCategoria: '',
+        filtroEstado:    '',
+        pagina:          1,
+        porPagina:       12,
+
+        // --- FORMULARIO MODAL (CRUD) ---
+        // Objeto con los 5 campos mínimos + categoría + imagen
+        form: {
+            id:               null,
+            nombre:           '',
+            stock_actual:     '',
+            stock_minimo:     '',
+            precio_unitario:  '',
+            fecha_vencimiento:'',
+            categoria_id:     '',
+            imagen_ruta:      ''
+        },
+        archivoImagen: null,
+        previewImg:    null,
+        formError:     '',
+        guardando:     false,
+        editando:      false,
+
+        // Modal eliminar
+        eliminando: null,
+
+        // Instancias Bootstrap Modal
+        _modalInsumo:   null,
+        _modalEliminar: null,
+    },
+
+    /* ── LIFECYCLE ── */
+    mounted() {
+        this._modalInsumo   = new bootstrap.Modal(this.$refs.modalInsumo);
+        this._modalEliminar = new bootstrap.Modal(this.$refs.modalEliminar);
+        this.cargarDatos();
+    },
+
+    /* ── COMPUTED ── */
+    computed: {
+        insumosFiltrados() {
+            let lista = this.insumos;
+
+            if (this.busqueda.trim()) {
+                const q = this.busqueda.toLowerCase();
+                lista = lista.filter(i => i.nombre.toLowerCase().includes(q) ||
+                                         i.categoria_nombre.toLowerCase().includes(q));
+            }
+            if (this.filtroCategoria) {
+                lista = lista.filter(i => String(i.categoria_id) === String(this.filtroCategoria));
+            }
+            if (this.filtroEstado) {
+                if (this.filtroEstado === 'ok')      lista = lista.filter(i => parseFloat(i.stock_actual) >= parseFloat(i.stock_minimo) && parseFloat(i.stock_actual) > 0);
+                if (this.filtroEstado === 'bajo')    lista = lista.filter(i => parseFloat(i.stock_actual) < parseFloat(i.stock_minimo) && parseFloat(i.stock_actual) > 0);
+                if (this.filtroEstado === 'critico') lista = lista.filter(i => parseFloat(i.stock_actual) === 0 || parseFloat(i.stock_actual) < parseFloat(i.stock_minimo));
+            }
+            return lista;
+        },
+
+        totalPaginas() {
+            return Math.ceil(this.insumosFiltrados.length / this.porPagina);
+        },
+
+        insumosPaginados() {
+            const ini = (this.pagina - 1) * this.porPagina;
+            return this.insumosFiltrados.slice(ini, ini + this.porPagina);
+        },
+
+        stats() {
+            const t = this.insumos;
+            return {
+                total:      t.length,
+                agotados:   t.filter(i => parseFloat(i.stock_actual) === 0).length,
+                bajoStock:  t.filter(i => parseFloat(i.stock_actual) < parseFloat(i.stock_minimo)).length,
+                valorTotal: t.reduce((s, i) => s + parseFloat(i.stock_actual) * parseFloat(i.precio_unitario), 0)
+            };
+        }
+    },
+
+    watch: {
+        busqueda()        { this.pagina = 1; },
+        filtroCategoria() { this.pagina = 1; },
+        filtroEstado()    { this.pagina = 1; }
+    },
+
+    /* ── METHODS ── */
+    methods: {
+
+        /* ── CARGA INICIAL DE DATOS (READ) ── */
+        async cargarDatos() {
+            this.loading = true; // Muestra el spinner de carga
+            try {
+                // Hacemos peticiones AJAX (fetch) a nuestra API en PHP de forma asíncrona (sin recargar la página)
+                const [rIns, rCat] = await Promise.all([
+                    fetch('php/api_insumos.php?action=list'),
+                    fetch('php/api_insumos.php?action=categorias')
+                ]);
+                
+                // Convertimos la respuesta de PHP de JSON a objetos de JavaScript
+                const dIns = await rIns.json();
+                const dCat = await rCat.json();
+                
+                // Si la respuesta fue "ok", guardamos los datos en nuestras variables reactivas de Vue
+                if (dIns.ok)  this.insumos    = dIns.data;
+                if (dCat.ok)  this.categorias = dCat.data;
+            } catch (e) {
+                this.toast('Error al cargar datos del servidor.', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /* ── Modal formulario ── */
+        openModal(insumo) {
+            this.formError    = '';
+            this.previewImg   = null;
+            this.archivoImagen = null;
+            if (this.$refs.fileInput) this.$refs.fileInput.value = '';
+
+            if (insumo) {
+                this.editando = true;
+                this.form = {
+                    id:                insumo.id,
+                    nombre:            insumo.nombre,
+                    stock_actual:      insumo.stock_actual,
+                    stock_minimo:      insumo.stock_minimo,
+                    precio_unitario:   insumo.precio_unitario,
+                    fecha_vencimiento: insumo.fecha_vencimiento || '',
+                    categoria_id:      insumo.categoria_id,
+                    imagen_ruta:       insumo.imagen_ruta || ''
+                };
+            } else {
+                this.editando = false;
+                this.form = { id: null, nombre: '', stock_actual: '', stock_minimo: '',
+                              precio_unitario: '', fecha_vencimiento: '', categoria_id: '', imagen_ruta: '' };
+            }
+            this._modalInsumo.show();
+        },
+
+        onFileChange(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                this.formError = 'La imagen no puede superar 2 MB.';
+                e.target.value = '';
+                return;
+            }
+            this.archivoImagen = file;
+            const reader = new FileReader();
+            reader.onload = ev => { this.previewImg = ev.target.result; };
+            reader.readAsDataURL(file);
+        },
+
+        validarForm() {
+            if (!this.form.nombre.trim())           return 'El nombre es obligatorio.';
+            if (!this.form.categoria_id)            return 'Selecciona una categoría.';
+            if (this.form.stock_actual === '')      return 'Ingresa el stock actual.';
+            if (this.form.stock_minimo === '')      return 'Ingresa el stock mínimo.';
+            if (this.form.precio_unitario === '')   return 'Ingresa el precio unitario.';
+            return '';
+        },
+
+        /* ── GUARDAR INSUMO (CREATE / UPDATE) ── */
+        async guardarInsumo() {
+            this.formError = this.validarForm();
+            if (this.formError) return;
+
+            this.guardando = true;
+            
+            // FormData: Usamos esto en lugar de un POST normal porque tenemos que subir un ARCHIVO (la imagen)
+            const fd = new FormData();
+            
+            // Agregamos la acción dependiendo si estamos creando o editando
+            fd.append('action', this.editando ? 'update' : 'create');
+            if (this.editando) fd.append('id', this.form.id);
+            
+            // Agregamos todos los campos de texto
+            fd.append('nombre',            this.form.nombre.trim());
+            fd.append('stock_actual',      this.form.stock_actual);
+            fd.append('stock_minimo',      this.form.stock_minimo);
+            fd.append('precio_unitario',   this.form.precio_unitario);
+            fd.append('fecha_vencimiento', this.form.fecha_vencimiento || '');
+            fd.append('categoria_id',      this.form.categoria_id);
+            
+            // Si el usuario seleccionó una imagen, la agregamos al paquete POST
+            if (this.archivoImagen) fd.append('imagen', this.archivoImagen);
+
+                // Enviamos el FormData a la API PHP usando el método POST
+                const res  = await fetch('php/api_insumos.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    this.toast(this.editando ? 'Insumo actualizado correctamente.' : 'Insumo creado correctamente.', 'success');
+                    this._modalInsumo.hide();
+                    
+                    // Volvemos a cargar los datos para refrescar la tabla
+                    await this.cargarDatos();
+                } else {
+                    this.formError = data.error || 'Error al guardar.';
+                }
+            } catch (e) {
+                this.formError = 'Error de comunicación con el servidor.';
+            } finally {
+                this.guardando = false;
+            }
+        },
+
+        /* ── ELIMINAR (DELETE) ── */
+        confirmarEliminar(ins) {
+            this.eliminando = ins;
+            this._modalEliminar.show();
+        },
+
+        async eliminarInsumo() {
+            if (!this.eliminando) return;
+            this.loading = true;
+            try {
+                const fd = new FormData();
+                fd.append('action', 'delete');
+                fd.append('id', this.eliminando.id);
+                const res  = await fetch('php/api_insumos.php', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) {
+                    this.toast('Insumo eliminado.', 'success');
+                    this._modalEliminar.hide();
+                    await this.cargarDatos();
+                } else {
+                    this.toast(data.error || 'Error al eliminar.', 'error');
+                }
+            } catch (e) {
+                this.toast('Error de comunicación.', 'error');
+            } finally {
+                this.loading  = false;
+                this.eliminando = null;
+            }
+        },
+
+        /* ── Helpers ── */
+        getStockClass(ins) {
+            const act = parseFloat(ins.stock_actual);
+            const min = parseFloat(ins.stock_minimo);
+            if (act === 0)      return 'stock-critical';
+            if (act < min)      return 'stock-low';
+            return 'stock-ok';
+        },
+        getStockIcon(ins) {
+            const act = parseFloat(ins.stock_actual);
+            const min = parseFloat(ins.stock_minimo);
+            if (act === 0)  return 'bi-x-circle-fill';
+            if (act < min)  return 'bi-exclamation-triangle-fill';
+            return 'bi-check-circle-fill';
+        },
+        getStockLabel(ins) {
+            const act = parseFloat(ins.stock_actual);
+            const min = parseFloat(ins.stock_minimo);
+            if (act === 0)  return 'Agotado';
+            if (act < min)  return 'Bajo';
+            return 'OK';
+        },
+
+        formatCOP(v) {
+            const n = parseFloat(v) || 0;
+            if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000)    return '$' + (n / 1000).toFixed(0) + 'K';
+            return '$' + n.toLocaleString('es-CO');
+        },
+
+        formatFecha(f) {
+            if (!f) return '—';
+            const [y, m, d] = f.split('-');
+            return `${d}/${m}/${y}`;
+        },
+
+        isVencido(f) {
+            if (!f) return false;
+            return new Date(f) < new Date();
+        },
+
+        toast(msg, type = 'success') {
+            const id = ++this.toastId;
+            this.toasts.push({ id, msg, type });
+            setTimeout(() => {
+                this.toasts = this.toasts.filter(t => t.id !== id);
+            }, 3500);
+        }
+    }
+});
