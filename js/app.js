@@ -25,6 +25,9 @@ new Vue({
         filtroEstado:    '',
         pagina:          1,
         porPagina:       12,
+        
+        // Fecha para el PDF
+        fechaActual: new Date().toLocaleString(),
 
         // --- FORMULARIO MODAL (CRUD) ---
         // Objeto con los 5 campos mínimos + categoría + imagen
@@ -190,23 +193,24 @@ new Vue({
 
             this.guardando = true;
             
-            // FormData: Usamos esto en lugar de un POST normal porque tenemos que subir un ARCHIVO (la imagen)
-            const fd = new FormData();
-            
-            // Agregamos la acción dependiendo si estamos creando o editando
-            fd.append('action', this.editando ? 'update' : 'create');
-            if (this.editando) fd.append('id', this.form.id);
-            
-            // Agregamos todos los campos de texto
-            fd.append('nombre',            this.form.nombre.trim());
-            fd.append('stock_actual',      this.form.stock_actual);
-            fd.append('stock_minimo',      this.form.stock_minimo);
-            fd.append('precio_unitario',   this.form.precio_unitario);
-            fd.append('fecha_vencimiento', this.form.fecha_vencimiento || '');
-            fd.append('categoria_id',      this.form.categoria_id);
-            
-            // Si el usuario seleccionó una imagen, la agregamos al paquete POST
-            if (this.archivoImagen) fd.append('imagen', this.archivoImagen);
+            try {
+                // FormData: Usamos esto en lugar de un POST normal porque tenemos que subir un ARCHIVO (la imagen)
+                const fd = new FormData();
+                
+                // Agregamos la acción dependiendo si estamos creando o editando
+                fd.append('action', this.editando ? 'update' : 'create');
+                if (this.editando) fd.append('id', this.form.id);
+                
+                // Agregamos todos los campos de texto
+                fd.append('nombre',            this.form.nombre.trim());
+                fd.append('stock_actual',      this.form.stock_actual);
+                fd.append('stock_minimo',      this.form.stock_minimo);
+                fd.append('precio_unitario',   this.form.precio_unitario);
+                fd.append('fecha_vencimiento', this.form.fecha_vencimiento || '');
+                fd.append('categoria_id',      this.form.categoria_id);
+                
+                // Si el usuario seleccionó una imagen, la agregamos al paquete POST
+                if (this.archivoImagen) fd.append('imagen', this.archivoImagen);
 
                 // Enviamos el FormData a la API PHP usando el método POST
                 const res  = await fetch('php/api_insumos.php', { method: 'POST', body: fd });
@@ -256,6 +260,30 @@ new Vue({
                 this.loading  = false;
                 this.eliminando = null;
             }
+        },
+
+        /* ── EXPORTAR PDF CON VUE ── */
+        generarPDF() {
+            this.toast('Generando PDF, por favor espera...', 'success');
+            // Actualizamos la fecha
+            this.fechaActual = new Date().toLocaleString();
+            
+            // Obtenemos el elemento oculto que tiene el diseño del reporte
+            const element = document.getElementById('pdf-reporte');
+            
+            // Opciones de html2pdf
+            const opt = {
+                margin:       10,
+                filename:     'Reporte_Inventario_RestaurantPRO.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Generamos el PDF (html2pdf lee el DOM y lo descarga automáticamente)
+            html2pdf().set(opt).from(element).save().then(() => {
+                this.toast('PDF descargado exitosamente.', 'success');
+            });
         },
 
         /* ── Helpers ── */
