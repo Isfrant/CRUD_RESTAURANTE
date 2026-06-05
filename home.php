@@ -375,7 +375,7 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
     <div style="display: none;">
         <div id="pdf-reporte" class="bg-white text-dark p-4" style="width: 1000px;">
             <div class="text-center mb-4 pb-3 border-bottom border-2 border-dark">
-                <h2><i class="bi bi-shop"></i> RestaurantPRO</h2>
+                <h2><i class="bi bi-shop"></i> Restaurante</h2>
                 <h4>Reporte Completo de Inventario</h4>
                 <p class="mb-0 text-muted">Generado el: {{ fechaActual }}</p>
             </div>

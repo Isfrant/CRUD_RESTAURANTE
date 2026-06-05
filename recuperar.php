@@ -15,8 +15,9 @@ if (isset($_POST['recuperar'])) {
     $pregunta = $conexion->real_escape_string($_POST['pregunta']);
     $respuesta = $conexion->real_escape_string($_POST['respuesta']);
     $nueva_clave_plana = $_POST['nueva_clave'];
+    $confirmar_nueva_clave =$_POST['confirmar_nueva_clave'];
 
-    if (empty($su) || empty($correo) || empty($pregunta) || empty($respuesta) || empty($nueva_clave_plana)) {
+    if (empty($su) || empty($correo) || empty($pregunta) || empty($respuesta) || empty($nueva_clave_plana) || empty($confirmar_nueva_clave)) {
         echo "<script>alert('Llena todos los campos');</script>";
     } else {
         // Buscamos si el usuario y los demás campos coinciden en la base de datos
@@ -24,6 +25,17 @@ if (isset($_POST['recuperar'])) {
         $consulta = $conexion->query($sql);
 
         if (mysqli_num_rows($consulta) > 0) {
+            
+           if ($nueva_clave_plana !== $confirmar_nueva_clave) {
+            echo"<script>alert('Las contraseñas no coinciden. Por favor, inténtalo de nuevo.'); window.history.back();</script>";
+            exit();
+            }
+            $pattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
+
+            if (!preg_match($pattern, $nueva_clave_plana)) {
+            echo"<script>alert('Error: La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.'); window.history.back();</script>";
+            exit();
+             }
             // Si todo coincide, encriptamos la nueva clave en md5
             $nueva_clave_md5 = md5($nueva_clave_plana); 
             
@@ -80,7 +92,16 @@ if (isset($_POST['recuperar'])) {
                 
                 <div class="mb-4">
                     <label class="form-label">Nueva Contraseña:</label>
-                    <input class="form-control" type="password" name="nueva_clave" required>
+                    <input class="form-control" type="password" name="nueva_clave" required placeholder="Ej: Ejemplo1@" title="Mínimo 8 caracteres, debe incluir una mayúscula, una minúscula, un número y un carácter especial"
+           required>
+           <div class="form-text text-muted">
+                Mínimo 8 caracteres (Ej: Mayúscula, minúscula, número y un símbolo como . o *).
+            </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Confirmar nueva contraseña:</label>
+                    <input class="form-control" type="password" name="confirmar_nueva_clave" required>
                 </div>
 
                 <input class="btn btn-primary w-100 mb-3" type="submit" name="recuperar" value="Cambiar Contraseña">

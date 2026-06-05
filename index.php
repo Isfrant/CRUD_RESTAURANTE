@@ -64,7 +64,7 @@ if (isset($_POST['login'])) {
 <body class="bg-light">
     <div class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card shadow p-4" style="width: 100%; max-width: 400px;">
-            <h2 class="text-center mb-4">Iniciar Sesión</h2>
+            <h2 class="text-center mb-4">Iniciar Sesión Restaurante</h2>
             <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                 <div class="mb-3">
                     <label class="form-label">Usuario:</label>

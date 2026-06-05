@@ -14,15 +14,28 @@ if (isset($_POST['registrar'])) {
     $su = $conexion->real_escape_string($_POST['usuario']);
     $correo = $conexion->real_escape_string($_POST['correo']);
     $clave_plana = $_POST['clave'];
+    $confirmar_clave = $_POST['confirmar_clave'];
     $pregunta = $conexion->real_escape_string($_POST['pregunta']);
     $respuesta = $conexion->real_escape_string($_POST['respuesta']);
+
+    
     
     // Encriptamos la clave ingresada
     $c = md5($clave_plana);
 
-    if (empty($su) || empty($clave_plana) || empty($correo)) {
+    if (empty($su) || empty($clave_plana) || empty($correo) || empty($confirmar_clave)) {
         echo "<script>alert('Error: Todos los campos son obligatorios');</script>";
     } else {
+        if ($clave_plana !== $confirmar_clave) {
+            echo"<script>alert('Las contraseñas no coinciden. Por favor, inténtalo de nuevo.'); window.history.back();</script>";
+            exit();
+            }
+            $pattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
+
+            if (!preg_match($pattern, $clave_plana)) {
+            echo"<script>alert('Error: La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.'); window.history.back();</script>";
+            exit();
+             }
         // Verificamos si el usuario ya existe para no duplicarlo
         $sql_check = "SELECT * FROM usuarios WHERE usunombre = '$su'";
         $resultado = $conexion->query($sql_check);
@@ -67,8 +80,18 @@ if (isset($_POST['registrar'])) {
                 
                 <div class="mb-3">
                     <label class="form-label">Clave:</label>
-                    <input class="form-control" type="password" name="clave" required>
+                    <input class="form-control" type="password" name="clave" placeholder="Ej: Ejemplo1@" title=" Mínimo 8 caracteres (Ej: Mayúscula, minúscula, número y un símbolo como . o *)." required>
+                    <div class="form-text text-muted">
+                     Mínimo 8 caracteres (Ej: Mayúscula, minúscula, número y un símbolo como . o *).
+                    </div>
                 </div>
+
+                 <div class="mb-3">
+                    <label class="form-label">Confirmar Clave:</label>
+                    <input class="form-control" type="password" name="confirmar_clave" required>
+                </div>
+
+                
 
                 <div class="mb-3">
                     <label class="form-label">Pregunta de Seguridad:</label>

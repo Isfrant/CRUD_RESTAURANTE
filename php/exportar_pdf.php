@@ -49,7 +49,7 @@ class PDF extends FPDF {
         $this->SetFont('Arial', 'B', 16);
         $this->SetTextColor(201, 168, 76);
         $this->SetY(8);
-        $this->Cell(0, 8, 'RestaurantePRO', 0, 1, 'C');
+        $this->Cell(0, 8, 'Restaurante', 0, 1, 'C');
         $this->SetFont('Arial', '', 9);
         $this->SetTextColor(180, 170, 155);
         $this->Cell(0, 5, 'Reporte de Alertas de Stock Minimo', 0, 1, 'C');
@@ -134,43 +134,3 @@ if (count($items) === 0) {
 
 $pdf->Output('D', 'alertas_stock_' . date('Ymd_Hi') . '.pdf');
 
-// ── Fallback sin FPDF (Versión Sencilla en HTML) ─────────────────────────────────────
-// Si no tenemos instalada la librería FPDF, simplemente generamos una página HTML normal para imprimirla.
-function fallbackHtml(): void {
-    require_once __DIR__ . '/../config/conexion.php';
-    $pdo  = getConexion();
-    // Consulta SQL pura
-    $stmt = $pdo->query(
-        'SELECT i.nombre, i.stock_actual, i.stock_minimo, i.precio_unitario,
-                i.fecha_vencimiento, c.nombre AS categoria
-         FROM insumos i LEFT JOIN categorias c ON i.categoria_id = c.id
-         WHERE i.stock_actual < i.stock_minimo ORDER BY i.nombre'
-    );
-    $items = $stmt->fetchAll();
-    header('Content-Type: text/html; charset=utf-8');
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Alertas de Stock</title>
-    <style>
-    body{font-family:Arial,sans-serif;background:#0F0D0B;color:#F5F0E8;padding:30px;}
-    h1{color:#C9A84C;}
-    .notice{background:#2a2000;border:1px solid #C9A84C;border-radius:8px;padding:16px;margin-bottom:24px;color:#E8C97A;}
-    table{width:100%;border-collapse:collapse;}
-    th{background:#1E1A16;color:#C9A84C;padding:10px;border:1px solid #333;font-size:13px;}
-    td{padding:9px;border:1px solid #222;font-size:12px;}
-    .red{background:rgba(192,57,43,0.15);}
-    </style></head><body>
-    <h1>🍽️ RestaurantePRO – Alertas de Stock Mínimo</h1>
-    <div class="notice">⚠️ <strong>FPDF no está instalado.</strong> Para generar PDF real:<br>
-    1. Descarga <a href="http://fpdf.org" style="color:#C9A84C">fpdf.org</a> y coloca fpdf.php en <code>php/</code><br>
-    2. O ejecuta: <code>composer require setasign/fpdf</code></div>
-    <p>Generado: ' . date('d/m/Y H:i') . ' | Alertas: ' . count($items) . '</p>
-    <table><tr><th>Insumo</th><th>Categoría</th><th>Stock Actual</th><th>Stock Mín.</th><th>Déficit</th><th>Precio</th><th>Vencimiento</th></tr>';
-    foreach ($items as $r) {
-        $cl = floatval($r['stock_actual']) == 0 ? ' class="red"' : '';
-        echo "<tr$cl><td>{$r['nombre']}</td><td>{$r['categoria']}</td><td>{$r['stock_actual']}</td><td>{$r['stock_minimo']}</td>";
-        echo '<td>' . (floatval($r['stock_minimo']) - floatval($r['stock_actual'])) . '</td>';
-        echo '<td>$' . number_format($r['precio_unitario'],0,',','.') . '</td>';
-        echo '<td>' . ($r['fecha_vencimiento'] ? date('d/m/Y', strtotime($r['fecha_vencimiento'])) : '—') . '</td></tr>';
-    }
-    echo '</table></body></html>';
-}
