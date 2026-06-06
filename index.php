@@ -1,32 +1,23 @@
 <?php
-// =========================================================================
-// SCRIPT DE LOGIN
-// =========================================================================
-// Iniciamos la sesión para poder guardar las variables globales del usuario
+
 session_start();
 
-// Conexión a la base de datos del restaurante
 $conexion = new mysqli('localhost', 'root', '', 'restaurante_inventario');
 
 if ($conexion->connect_errno) {
     die("ERROR al conectar con la DB: " . $conexion->connect_error);
 }
 
-// Verificamos si se envió el formulario (el botón se llama 'login')
 if (isset($_POST['login'])) {
     
-    // Obtenemos los datos del formulario y los limpiamos para evitar inyección SQL
     $su = $conexion->real_escape_string($_POST['usuario']);
     $clave_plana = $_POST['clave'];
     
-    // Encriptamos la clave con md5 tal como en tu código original
     $c = md5($clave_plana);  
 
-    // Validamos que no estén vacíos
     if (empty($su) || empty($clave_plana)) {
         echo "<script>alert('Error: usuario y/o clave vacíos!!');</script>"; 
     } else {
-        // Hacemos la consulta a la tabla usuarios (usamos usunombre y usuclave)
         $sql = "SELECT * FROM usuarios WHERE usunombre = '$su' AND usuclave = '$c'";
         
         $consulta = $conexion->query($sql);
@@ -34,21 +25,16 @@ if (isset($_POST['login'])) {
         if (!$consulta) {
             echo "ERROR: no se pudo ejecutar la consulta!";
         } else {
-            // Contamos cuántos registros coincidieron
             $filas = mysqli_num_rows($consulta);
 
-            // Si es 0, los datos están mal
             if ($filas == 0) {
                 echo "<script>alert('Error: usuario y/o clave incorrectos!!');</script>";
             } else {
-                // Si la consulta fue exitosa, extraemos los datos del usuario
                 $usuario_db = $consulta->fetch_assoc();
                 
-                // GUARDAMOS LOS DATOS EN LA SESIÓN (Muy importante para proteger el CRUD)
                 $_SESSION['usuario_id'] = $usuario_db['id'];
                 $_SESSION['usuario_nombre'] = $usuario_db['usunombre'];
                 
-                // Redirigimos al panel principal del CRUD (Vue)
                 echo "<script> window.location='home.php';</script>";
             }
         }

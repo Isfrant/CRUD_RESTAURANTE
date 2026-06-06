@@ -1,12 +1,8 @@
 <?php
-// ============================================================
-// API REST – Gestión de Insumos
-// ============================================================
-// Iniciamos la sesión para proteger la API (solo usuarios logueados pueden hacer CRUD)
+
 session_start();
 if (!isset($_SESSION['usuario_id'])) {
     http_response_code(401);
-    // Devolvemos un JSON indicando error de autorización si intentan acceder directamente
     echo json_encode(['ok' => false, 'error' => 'No autorizado.']);
     exit;
 }
@@ -17,8 +13,6 @@ require_once __DIR__ . '/../config/conexion.php';
 $pdo    = getConexion();
 $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
-// ── Enrutador (Controlador Frontal) ─────────────────────────────────────────────
-// Dependiendo de lo que Vue.js envíe en 'action', ejecutamos una función diferente
 switch ($action) {
     case 'list':        getList($pdo);       break; // Obtiene los insumos (READ)
     case 'categorias':  getCategorias($pdo); break; // Obtiene las categorías
@@ -50,21 +44,17 @@ function getCategorias(PDO $pdo): void {
 
 // ── POST: crear insumo (CREATE) ────────────────────────────────────
 function createInsumo(PDO $pdo): void {
-    // 1. Validar que los campos obligatorios vengan en el POST
     $data = validarCampos();
     if ($data['error']) { echo json_encode(['ok' => false, 'error' => $data['error']]); return; }
 
-    // 2. Procesar la subida de imagen (si la hay)
     $imgRuta = subirImagen();
     if ($imgRuta['error']) { echo json_encode(['ok' => false, 'error' => $imgRuta['error']]); return; }
 
-    // 3. Preparar la consulta SQL (Evitando inyección SQL con parámetros :nombre, :stock_actual...)
     $stmt = $pdo->prepare(
         'INSERT INTO insumos (nombre, stock_actual, stock_minimo, precio_unitario, fecha_vencimiento, categoria_id, imagen_ruta)
          VALUES (:nombre, :stock_actual, :stock_minimo, :precio_unitario, :fecha_vencimiento, :categoria_id, :imagen_ruta)'
     );
     
-    // 4. Ejecutar la inserción con los datos
     $stmt->execute([
         ':nombre'            => $data['nombre'],
         ':stock_actual'      => $data['stock_actual'],
@@ -75,7 +65,6 @@ function createInsumo(PDO $pdo): void {
         ':imagen_ruta'       => $imgRuta['ruta'],
     ]);
     
-    // Respondemos con ok: true y el ID generado
     echo json_encode(['ok' => true, 'id' => $pdo->lastInsertId()]);
 }
 
@@ -87,7 +76,6 @@ function updateInsumo(PDO $pdo): void {
     $data = validarCampos();
     if ($data['error']) { echo json_encode(['ok' => false, 'error' => $data['error']]); return; }
 
-    // Obtener imagen actual
     $actual = $pdo->prepare('SELECT imagen_ruta FROM insumos WHERE id = ?');
     $actual->execute([$id]);
     $row = $actual->fetch();
@@ -95,7 +83,6 @@ function updateInsumo(PDO $pdo): void {
     $imgRuta = subirImagen();
     if ($imgRuta['error']) { echo json_encode(['ok' => false, 'error' => $imgRuta['error']]); return; }
 
-    // Si se subió nueva imagen, borrar la antigua
     $nuevaRuta = $imgRuta['ruta'];
     if ($nuevaRuta && $row && $row['imagen_ruta']) {
         $antigua = __DIR__ . '/../' . $row['imagen_ruta'];

@@ -1,7 +1,5 @@
 <?php
-// =========================================================================
-// SCRIPT DE RECUPERACIÓN DE CONTRASEÑA
-// =========================================================================
+
 $conexion = new mysqli('localhost', 'root', '', 'restaurante_inventario');
 
 if ($conexion->connect_errno) {
@@ -9,7 +7,6 @@ if ($conexion->connect_errno) {
 }
 
 if (isset($_POST['recuperar'])) {
-    // Recibimos los datos de recuperación
     $su = $conexion->real_escape_string($_POST['usuario']);
     $correo = $conexion->real_escape_string($_POST['correo']);
     $pregunta = $conexion->real_escape_string($_POST['pregunta']);
@@ -20,7 +17,6 @@ if (isset($_POST['recuperar'])) {
     if (empty($su) || empty($correo) || empty($pregunta) || empty($respuesta) || empty($nueva_clave_plana) || empty($confirmar_nueva_clave)) {
         echo "<script>alert('Llena todos los campos');</script>";
     } else {
-        // Buscamos si el usuario y los demás campos coinciden en la base de datos
         $sql = "SELECT * FROM usuarios WHERE usunombre = '$su' AND correo='$correo' AND pregunta_seguridad = '$pregunta' AND respuesta_seguridad = '$respuesta'";
         $consulta = $conexion->query($sql);
 
@@ -36,10 +32,8 @@ if (isset($_POST['recuperar'])) {
             echo"<script>alert('Error: La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.'); window.history.back();</script>";
             exit();
              }
-            // Si todo coincide, encriptamos la nueva clave en md5
             $nueva_clave_md5 = md5($nueva_clave_plana); 
             
-            // Actualizamos la clave en la tabla
             $sql_update = "UPDATE usuarios SET usuclave = '$nueva_clave_md5' WHERE usunombre = '$su'";
             
             if ($conexion->query($sql_update)) {

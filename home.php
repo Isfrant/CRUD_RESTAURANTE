@@ -1,13 +1,10 @@
 <?php
-// Iniciamos la sesión para poder verificar si el usuario está logueado
 session_start();
 
-// Si no existe la variable de sesión 'usuario_id', lo devolvemos al login
 if (!isset($_SESSION['usuario_id'])) {
     header('Location: index.php');
     exit;
 }
-// Guardamos el nombre del usuario para mostrarlo en la interfaz de forma segura
 $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
 ?>
 <!DOCTYPE html>
@@ -16,10 +13,8 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RestaurantePRO · Dashboard</title>
-    <!-- Solo cargamos Bootstrap y los iconos, sin CSS personalizado -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <!-- Librería html2pdf para generar PDF desde Vue -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="bg-light">
@@ -27,14 +22,12 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
 <!-- ══════════════════ APP VUE ══════════════════ -->
 <div id="app" class="container-fluid">
 
-    <!-- Loading -->
     <div v-if="loading" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white" style="z-index: 1050; opacity: 0.8;">
         <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">Cargando...</span>
         </div>
     </div>
 
-    <!-- Toasts / Alertas -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
         <div v-for="t in toasts" :key="t.id" class="toast align-items-center text-bg-dark border-0 show mb-2" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -92,11 +85,9 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
                 <hr class="border-secondary mt-5">
                 <div class="px-3 pb-3 d-flex align-items-center justify-content-between">
                     <div>
-                        <!-- Mostramos el nombre del usuario logueado usando la variable PHP -->
                         <strong><?= $usuario ?></strong><br>
                         <small class="text-secondary">Administrador</small>
                     </div>
-                    <!-- Botón de Cerrar Sesión que apunta al script logout.php creado -->
                     <a href="logout.php" class="btn btn-outline-danger btn-sm" title="Cerrar sesión">
                         <i class="bi bi-box-arrow-right"></i>
                     </a>
@@ -154,7 +145,7 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
                 <div class="col-sm-6 col-md-3">
                     <div class="card text-center shadow-sm">
                         <div class="card-body">
-                            <h3 class="card-title text-success"><i class="bi bi-currency-dollar"></i> {{ formatCOP(stats.valorTotal) }}</h3>
+                            <h3 class="card-title text-success"><i></i> {{ formatCOP(stats.valorTotal) }}</h3>
                             <p class="card-text text-muted">Valor Total</p>
                         </div>
                     </div>
@@ -229,17 +220,14 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- v-if: Oculta la tabla si no hay resultados -->
                                 <tr v-if="insumosPaginados.length === 0">
                                     <td colspan="9" class="text-center py-5 text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                         No se encontraron insumos.
                                     </td>
                                 </tr>
-                                <!-- v-for: Ciclo iterativo de Vue para crear las filas HTML automáticamente con cada insumo -->
                                 <tr v-for="ins in insumosPaginados" :key="ins.id" :class="{'table-danger': parseFloat(ins.stock_actual) < parseFloat(ins.stock_minimo)}">
                                     <td class="text-center">
-                                        <!-- Mostrar imagen dinámica vinculada a la ruta que guardamos en BD -->
                                         <img v-if="ins.imagen_ruta" :src="ins.imagen_ruta" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;" :alt="ins.nombre">
                                         <div v-else class="bg-secondary text-white d-flex justify-content-center align-items-center rounded" style="width: 50px; height: 50px; margin: 0 auto;">
                                             <i class="bi bi-image"></i>
@@ -296,7 +284,6 @@ $usuario = htmlspecialchars($_SESSION['usuario_nombre']);
                             <input type="text" class="form-control" v-model="form.nombre" placeholder="Ej: Pollo Entero">
                         </div>
                         <div class="col-md-6">
-                            <!-- v-model: Enlaza (bind) el input bidireccionalmente con la variable 'form.categoria_id' en Vue -->
                             <label class="form-label fw-bold">Categoría *</label>
                             <select class="form-select" v-model="form.categoria_id">
                                 <option value="">— Selecciona —</option>

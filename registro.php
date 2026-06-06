@@ -1,7 +1,5 @@
 <?php
-// =========================================================================
-// SCRIPT DE REGISTRO
-// =========================================================================
+
 $conexion = new mysqli('localhost', 'root', '', 'restaurante_inventario');
 
 if ($conexion->connect_errno) {
@@ -10,7 +8,6 @@ if ($conexion->connect_errno) {
 
 if (isset($_POST['registrar'])) {
     
-    // Recibimos los datos del formulario y prevenimos inyección SQL
     $su = $conexion->real_escape_string($_POST['usuario']);
     $correo = $conexion->real_escape_string($_POST['correo']);
     $clave_plana = $_POST['clave'];
@@ -20,7 +17,6 @@ if (isset($_POST['registrar'])) {
 
     
     
-    // Encriptamos la clave ingresada
     $c = md5($clave_plana);
 
     if (empty($su) || empty($clave_plana) || empty($correo) || empty($confirmar_clave)) {
@@ -36,14 +32,12 @@ if (isset($_POST['registrar'])) {
             echo"<script>alert('Error: La contraseña no cumple con los requisitos de seguridad. Debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.'); window.history.back();</script>";
             exit();
              }
-        // Verificamos si el usuario ya existe para no duplicarlo
         $sql_check = "SELECT * FROM usuarios WHERE usunombre = '$su'";
         $resultado = $conexion->query($sql_check);
 
         if (mysqli_num_rows($resultado) > 0) {
             echo "<script>alert('Error: El nombre de usuario ya está en uso. Elige otro.');</script>";
         } else {
-            // Inserción del nuevo usuario en la base de datos
             $sql_insert = "INSERT INTO usuarios (usunombre, usuclave, correo, pregunta_seguridad, respuesta_seguridad) 
                            VALUES ('$su', '$c', '$correo', '$pregunta', '$respuesta')";
             

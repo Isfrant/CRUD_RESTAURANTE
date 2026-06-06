@@ -1,25 +1,20 @@
-/* ============================================================
-   RestaurantePRO – app.js  |  Vue 2.x
-   ============================================================ */
 
 new Vue({
     el: '#app',
 
     data: {
         // --- ESTADO GENERAL ---
-        // Aquí Vue guarda todas las variables (el "estado"). Cuando cambian, Vue actualiza el HTML (home.php) automáticamente.
+      
         loading:     false,
         sidebarOpen: false,
         toasts:      [],
         toastId:     0,
 
         // --- DATOS DEL SERVIDOR ---
-        // Arreglos donde guardaremos la información que viene de la Base de Datos (a través de PHP)
         insumos:    [],
         categorias: [],
 
         // --- FILTROS Y PAGINACIÓN ---
-        // Variables conectadas a los inputs (v-model) para buscar en tiempo real
         busqueda:        '',
         filtroCategoria: '',
         filtroEstado:    '',
@@ -30,7 +25,6 @@ new Vue({
         fechaActual: new Date().toLocaleString(),
 
         // --- FORMULARIO MODAL (CRUD) ---
-        // Objeto con los 5 campos mínimos + categoría + imagen
         form: {
             id:               null,
             nombre:           '',
@@ -114,19 +108,16 @@ new Vue({
 
         /* ── CARGA INICIAL DE DATOS (READ) ── */
         async cargarDatos() {
-            this.loading = true; // Muestra el spinner de carga
+            this.loading = true; 
             try {
-                // Hacemos peticiones AJAX (fetch) a nuestra API en PHP de forma asíncrona (sin recargar la página)
                 const [rIns, rCat] = await Promise.all([
                     fetch('php/api_insumos.php?action=list'),
                     fetch('php/api_insumos.php?action=categorias')
                 ]);
                 
-                // Convertimos la respuesta de PHP de JSON a objetos de JavaScript
                 const dIns = await rIns.json();
                 const dCat = await rCat.json();
                 
-                // Si la respuesta fue "ok", guardamos los datos en nuestras variables reactivas de Vue
                 if (dIns.ok)  this.insumos    = dIns.data;
                 if (dCat.ok)  this.categorias = dCat.data;
             } catch (e) {
@@ -193,26 +184,22 @@ new Vue({
 
             this.guardando = true;
             
-            try {
-                // FormData: Usamos esto en lugar de un POST normal porque tenemos que subir un ARCHIVO (la imagen)
-                const fd = new FormData();
-                
-                // Agregamos la acción dependiendo si estamos creando o editando
-                fd.append('action', this.editando ? 'update' : 'create');
-                if (this.editando) fd.append('id', this.form.id);
-                
-                // Agregamos todos los campos de texto
-                fd.append('nombre',            this.form.nombre.trim());
-                fd.append('stock_actual',      this.form.stock_actual);
-                fd.append('stock_minimo',      this.form.stock_minimo);
-                fd.append('precio_unitario',   this.form.precio_unitario);
-                fd.append('fecha_vencimiento', this.form.fecha_vencimiento || '');
-                fd.append('categoria_id',      this.form.categoria_id);
-                
-                // Si el usuario seleccionó una imagen, la agregamos al paquete POST
-                if (this.archivoImagen) fd.append('imagen', this.archivoImagen);
+            const fd = new FormData();
+            
+            // la acción dependiendo si se esta creando o editando
+            fd.append('action', this.editando ? 'update' : 'create');
+            if (this.editando) fd.append('id', this.form.id);
+            
+            // Agregamos todos los campos de texto
+            fd.append('nombre',            this.form.nombre.trim());
+            fd.append('stock_actual',      this.form.stock_actual);
+            fd.append('stock_minimo',      this.form.stock_minimo);
+            fd.append('precio_unitario',   this.form.precio_unitario);
+            fd.append('fecha_vencimiento', this.form.fecha_vencimiento || '');
+            fd.append('categoria_id',      this.form.categoria_id);
+            
+            if (this.archivoImagen) fd.append('imagen', this.archivoImagen);
 
-                // Enviamos el FormData a la API PHP usando el método POST
                 const res  = await fetch('php/api_insumos.php', { method: 'POST', body: fd });
                 const data = await res.json();
                 
@@ -220,7 +207,6 @@ new Vue({
                     this.toast(this.editando ? 'Insumo actualizado correctamente.' : 'Insumo creado correctamente.', 'success');
                     this._modalInsumo.hide();
                     
-                    // Volvemos a cargar los datos para refrescar la tabla
                     await this.cargarDatos();
                 } else {
                     this.formError = data.error || 'Error al guardar.';
@@ -265,16 +251,14 @@ new Vue({
         /* ── EXPORTAR PDF CON VUE ── */
         generarPDF() {
             this.toast('Generando PDF, por favor espera...', 'success');
-            // Actualizamos la fecha
             this.fechaActual = new Date().toLocaleString();
             
-            // Obtenemos el elemento oculto que tiene el diseño del reporte
             const element = document.getElementById('pdf-reporte');
             
             // Opciones de html2pdf
             const opt = {
                 margin:       10,
-                filename:     'Reporte_Inventario_RestaurantPRO.pdf',
+                filename:     'Reporte_Inventario_Restaurante.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
